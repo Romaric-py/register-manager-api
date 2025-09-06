@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  USER
+}
+
+enum RegistrationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+
+model User {
+  id                           String         @id @default(uuid())
+  firstName                    String
+  lastName                     String
+  email                        String         @unique
+  password                     String // Hash du mot de passe
+  phone                        String?
+  role                         Role           @default(USER)
+  isActive                     Boolean        @default(true)
+  emailVerified                Boolean        @default(false) // Indique si l'email a été vérifié
+  emailVerificationToken       String?        // Token pour vérifier l'email
+  emailVerificationTokenExpiry DateTime?      // Date d'expiration du token de vérification
+  lastEmailVerificationIssue   DateTime? // Date de la dernière émission du token de vérification
+  lastLogin                    DateTime?
+  resetToken                   String?        // Pour réinitialisation mot de passe
+  resetTokenExpiry             DateTime?
+  createdAt                    DateTime       @default(now())
+  updatedAt                    DateTime       @updatedAt
+  createdBy                    String?     
+  updatedBy                    String? 
+  refreshTokens                RefreshToken[]
+  registrations                Registration[]
+}
+
+model Registration {
+  id            String             @id @default(uuid())
+  userId        String
+  user          User               @relation(fields: [userId], references: [id])
+  formationId   String
+  formation     LearningModule     @relation(fields: [formationId], references: [id])
+  status        RegistrationStatus @default(PENDING)
+  paymentStatus PaymentStatus      @default(PENDING)
+  paymentId     String?
+  paymentAmount Float?
+  paymentDate   DateTime?
+  failureReason String? // Raison de l'échec du paiement
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model ContactMessage {
+  id          String    @id @default(uuid())
+  name        String
+  email       String
+  subject     String?
+  message     String
+  createdAt   DateTime  @default(now())
+  isRead      Boolean   @default(false)
+  respondedAt DateTime?
+  response    String?
+}
+
+model LearningModule {
+  id                  String         @id @default(uuid())
+  title               String
+  description         String
+  price               Float?
+  duration            String?
+  isActive            Boolean        @default(true)
+  maxParticipants     Int?
+  currentParticipants Int            @default(0)
+  startDate           DateTime?
+  endDate             DateTime?
+  registrations       Registration[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+}
+
+// model Session {
+//   id        String   @id @default(uuid())
+//   userId    String
+//   user      User     @relation(fields: [userId], references: [id])
+//   token     String   @unique
+//   createdAt DateTime @default(now())
+//   expiresAt DateTime
+// }
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
