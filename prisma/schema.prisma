@@ -13,12 +13,6 @@ enum Role {
   USER
 }
 
-enum RegistrationStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-}
-
 enum PaymentStatus {
   PENDING
   COMPLETED
@@ -26,6 +20,21 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum RegistrationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  MOBILE_MONEY
+  FEDAPAY
+  CASH
+  OTHER
+}
 
 model User {
   id                           String         @id @default(uuid())
@@ -37,34 +46,66 @@ model User {
   role                         Role           @default(USER)
   isActive                     Boolean        @default(true)
   emailVerified                Boolean        @default(false) // Indique si l'email a été vérifié
-  emailVerificationToken       String?        // Token pour vérifier l'email
-  emailVerificationTokenExpiry DateTime?      // Date d'expiration du token de vérification
+  emailVerificationToken       String? // Token pour vérifier l'email
+  emailVerificationTokenExpiry DateTime? // Date d'expiration du token de vérification
   lastEmailVerificationIssue   DateTime? // Date de la dernière émission du token de vérification
   lastLogin                    DateTime?
-  resetToken                   String?        // Pour réinitialisation mot de passe
+  resetToken                   String? // Pour réinitialisation mot de passe
   resetTokenExpiry             DateTime?
   createdAt                    DateTime       @default(now())
   updatedAt                    DateTime       @updatedAt
-  createdBy                    String?     
-  updatedBy                    String? 
+  createdBy                    String?
+  updatedBy                    String?
   refreshTokens                RefreshToken[]
   registrations                Registration[]
+
+  @@index([role])
+  @@index([isActive])
+  @@index([emailVerified])
+  @@index([createdAt])
 }
 
+// Objective: allow payment by installments
 model Registration {
-  id            String             @id @default(uuid())
-  userId        String
-  user          User               @relation(fields: [userId], references: [id])
-  formationId   String
-  formation     Course     @relation(fields: [formationId], references: [id])
-  status        RegistrationStatus @default(PENDING)
-  paymentStatus PaymentStatus      @default(PENDING)
-  paymentId     String?
-  paymentAmount Float?
-  paymentDate   DateTime?
-  failureReason String? // Raison de l'échec du paiement
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  id                 String             @id @default(uuid())
+  userId             String
+  user               User               @relation(fields: [userId], references: [id])
+  courseId           String
+  course             Course             @relation(fields: [courseId], references: [id])
+  status             RegistrationStatus @default(PENDING) // Statut de l'inscription
+  paymentStatus      PaymentStatus      @default(PENDING) // Statut du paiement
+  totalAmount        Float? // Montant total à payer
+  paidAmount         Float              @default(0) // Montant total payé (somme des paiements)
+  remainingAmount    Float? // Montant restant à payer
+  registrationDate   DateTime           @default(now()) // Date d'inscription
+  confirmationDate   DateTime? // Date de confirmation
+  cancellationDate   DateTime?
+  cancellationReason String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  payments           Payment[]
+
+  @@unique([userId, courseId]) // A user can only register once per course
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  registrationId String
+  registration   Registration  @relation(fields: [registrationId], references: [id])
+  amount         Float
+  status         PaymentStatus @default(PENDING)
+  method         PaymentMethod @default(OTHER)
+  transactionId  String?       @unique // ID de la transaction de paiement
+  paymentDate    DateTime?     @default(now()) // Date du paiement
+  processedAt    DateTime? // Quand le paiement a été traité
+  failureReason  String? // Raison de l'échec du paiement
+  notes          String? // Notes additionnelles
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([registrationId])
+  @@index([status])
+  @@index([paymentDate])
 }
 
 model ContactMessage {
@@ -80,19 +121,26 @@ model ContactMessage {
 }
 
 model Course {
-  id                  String         @id @default(uuid())
-  title               String
-  description         String
-  price               Float?
-  duration            String?
-  isActive            Boolean        @default(true)
-  maxParticipants     Int?
-  currentParticipants Int            @default(0)
-  startDate           DateTime?
-  endDate             DateTime?
-  registrations       Registration[]
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+  id            String         @id @default(uuid())
+  title         String         @unique // Éviter les doublons de titre
+  description   String
+  price         Float?
+  duration      String?
+  isActive      Boolean        @default(true)
+  // maxParticipants     Int?
+  // currentParticipants Int            @default(0)
+  startDate     DateTime?
+  endDate       DateTime?
+  location      String? // Lieu du cours (physique ou lien pour en ligne)
+  prerequisites String? // Prérequis pour le cours
+  objectives    String? // Objectifs d'apprentissage
+  registrations Registration[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([isActive])
+  @@index([startDate])
+  @@index([price])
 }
 
 // model Session {

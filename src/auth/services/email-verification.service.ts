@@ -6,8 +6,8 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma.service';
-import { MailService } from 'src/mail/mail.service';
+import { PrismaService } from '../../prisma.service';
+import { MailService } from '../../mail/mail.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -138,11 +138,18 @@ export class EmailVerificationService {
     });
 
     // Envoyer l'email de bienvenue maintenant que l'adresse email est vérifiée
-    await this.mailService.sendWelcomeEmail(updatedUser);
-    this.logger.log(
-      `Email de bienvenue envoyé à ${user.email} après vérification`,
-    );
-    // On ne rejette pas l'erreur ici pour ne pas bloquer le processus de vérification
+    try {
+      await this.mailService.sendWelcomeEmail(updatedUser);
+      this.logger.log(
+        `Email de bienvenue envoyé à ${user.email} après vérification`,
+      );
+    } catch (error) {
+      // On ne rejette pas l'erreur ici pour ne pas bloquer le processus de vérification
+      this.logger.error(
+        `Erreur lors de l'envoi de l'email de bienvenue à ${user.email}:`,
+        (error as Error).stack,
+      );
+    }
 
     this.logger.log(`Email vérifié avec succès pour ${user.email}`);
     return { message: 'Votre adresse email a été vérifiée avec succès' };

@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '../../prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { LoginDto } from '../dto/login.dto';
 import { UserValidationService } from './user-validation.service';

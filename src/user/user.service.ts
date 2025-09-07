@@ -53,7 +53,7 @@ export class UserService {
           ...selectUserFields,
           registrations: {
             include: {
-              formation: {
+              course: {
                 select: {
                   title: true,
                 },
@@ -75,7 +75,7 @@ export class UserService {
         ...selectUserFields,
         registrations: {
           include: {
-            formation: true,
+            course: true,
           },
         },
       },
@@ -88,7 +88,13 @@ export class UserService {
 
   // TODO: Validate access rights (admin only/ self)
   async update(id: string, updateUserDto: UpdateUserDto, updatedBy: string) {
-    const user = await this.findOne(id);
+    // Vérifier que l'utilisateur existe avant de le mettre à jour
+    const user = await this.prisma.user.findUnique({
+      where: { id, role: Role.USER },
+    });
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
 
     // Vérifier si l'email existe déjà (si on change l'email)
     if (updateUserDto.email && updateUserDto.email !== user.email) {
@@ -115,7 +121,13 @@ export class UserService {
   }
 
   async toggleActive(id: string, updatedBy: string) {
-    const user = await this.findOne(id);
+    // Vérifier que l'utilisateur existe avant de modifier son statut
+    const user = await this.prisma.user.findUnique({
+      where: { id, role: Role.USER },
+    });
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
 
     return this.prisma.user.update({
       where: { id },

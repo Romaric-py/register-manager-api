@@ -98,6 +98,7 @@ export class CourseService {
   }
 
   async update(id: string, updateCourseDto: UpdateCourseDto, updatedBy?: string) {
+    // Vérifier que le cours existe avant de le mettre à jour
     const course = await this.prisma.course.findUnique({ where: { id } });
     if (!course) {
       throw new NotFoundException('Cours non trouvé');
@@ -125,7 +126,8 @@ export class CourseService {
   }
 
   async toggleActive(id: string, updatedBy?: string) {
-    const course = await this.findOne(id);
+    // Vérifier que le cours existe avant de modifier son statut
+    const course = await this.prisma.course.findUnique({ where: { id } });
     if (!course) {
       throw new NotFoundException('Cours non trouvé');
     }
@@ -140,14 +142,15 @@ export class CourseService {
   }
 
   async remove(id: string) {
-    const course = await this.findOne(id);
+    // Vérifier que le cours existe avant de le supprimer
+    const course = await this.prisma.course.findUnique({ where: { id } });
     if (!course) {
       throw new NotFoundException('Cours non trouvé');
     }
 
     // Vérifier s'il y a des inscriptions actives
     const activeRegistrations = await this.prisma.registration.count({
-      where: { formationId: id, status: 'CONFIRMED' },
+      where: { courseId: id, status: 'CONFIRMED' },
     });
 
     if (activeRegistrations > 0) {

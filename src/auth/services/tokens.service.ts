@@ -1,7 +1,7 @@
 import { User } from '.prisma/client';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from 'src/jwt/jwt.service';
-import { PrismaService } from 'src/prisma.service';
+import { JwtService } from '../../jwt/jwt.service';
+import { PrismaService } from '../../prisma.service';
 import { CookieOptions } from 'express-serve-static-core';
 
 type AuthTokens = {

@@ -1,8 +1,8 @@
 import { Global, Module } from '@nestjs/common';
-import { TokensService } from 'src/auth/services/tokens.service';
+import { TokensService } from '../auth/services/tokens.service';
 import { JwtStrategy } from './jwt.strategy';
 import { JwtService } from './jwt.service';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '../prisma.service';
 import { JwtModule as NestJwtModule } from '@nestjs/jwt';
 
 @Global()

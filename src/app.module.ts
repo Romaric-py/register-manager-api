@@ -7,9 +7,13 @@ import { AdminModule } from './admin/admin.module';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { MailModule } from './mail/mail.module';
 import { CourseModule } from './course/course.module';
+import { RegistrationModule } from './registration/registration.module';
+import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
+import { PrismaGeneralExceptionFilter } from './common/filters/prisma-general-exception.filter';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -32,6 +36,8 @@ import { CourseModule } from './course/course.module';
     JwtModule,
     MailModule,
     CourseModule,
+    RegistrationModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [
@@ -39,6 +45,14 @@ import { CourseModule } from './course/course.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: PrismaExceptionFilter,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: PrismaGeneralExceptionFilter,
     },
   ],
 })

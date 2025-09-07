@@ -28,14 +28,12 @@ export class PaginationService {
     limit,
   }: PaginatedResponseOptions<T>) {
     return {
-      data: {
-        data,
-        pagination: {
-          total: totalCount,
-          page,
-          limit,
-          totalPages: Math.ceil(totalCount / limit),
-        },
+      data,
+      pagination: {
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
       },
     };
   }

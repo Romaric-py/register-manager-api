@@ -1,8 +1,25 @@
-import { IsString, IsEmail, IsEnum, IsOptional } from 'class-validator';
+import { IsString, IsEmail, IsEnum, IsOptional, IsNotEmpty, MinLength } from 'class-validator';
 import { Role } from '@prisma/client';
-import { RegisterUserDto } from './register-user.dto';
 
-export class CreateAdminDto extends RegisterUserDto {
+export class CreateAdminDto {
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(2)
+  firstName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(2)
+  lastName: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
   @IsEnum(Role)
   @IsOptional()
   role?: Role;

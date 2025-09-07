@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '../../prisma.service';
 import {
   RequestPasswordResetDto,
   ResetPasswordDto,
@@ -7,7 +7,7 @@ import {
 import * as bcrypt from 'bcryptjs';
 import { UserValidationService } from './user-validation.service';
 import * as crypto from 'crypto';
-import { MailService } from 'src/mail/mail.service';
+import { MailService } from '../../mail/mail.service';
 
 @Injectable()
 export class PasswordResetService {

@@ -7,11 +7,11 @@ import {
 } from '@nestjs/common';
 import { RegisterUserDto } from '../dto/register-user.dto';
 import { CreateAdminDto } from '../dto/create-admin.dto';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '../../prisma.service';
 import { Role, User } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { UserValidationService } from './user-validation.service';
-import { MailService } from 'src/mail/mail.service';
+import { MailService } from '../../mail/mail.service';
 import { EmailVerificationService } from './email-verification.service';
 
 @Injectable()

@@ -4,7 +4,7 @@ import {
   CanActivate,
   ExecutionContext,
 } from '@nestjs/common';
-import { JwtService } from 'src/jwt/jwt.service';
+import { JwtService } from './jwt.service';
 import { TokensService } from '../auth/services/tokens.service';
 
 @Injectable()
