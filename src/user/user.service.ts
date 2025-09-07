@@ -1,8 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { PaginationService, PaginationOptions } from '../pagination.service';
-import { Role } from '@prisma/client';
+import { PaginationService } from '../pagination.service';
+import { Prisma, Role } from '@prisma/client';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { GetUsersDto } from './dto/get-users.dto';
+
+const selectUserFields = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  phone: true,
+  isActive: true,
+  emailVerified: true,
+  lastLogin: true,
+  createdAt: true,
+  updatedAt: true,
+};
 
 @Injectable()
 export class UserService {
@@ -11,58 +25,54 @@ export class UserService {
     private paginationService: PaginationService,
   ) {}
 
-  async findAll(paginationOptions: PaginationOptions, search?: string) {
-    return this.paginationService.paginate(
-      (args) =>
-        this.prisma.user.findMany({
-          ...args,
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
-            isActive: true,
-            emailVerified: true,
-            lastLogin: true,
-            createdAt: true,
-            updatedAt: true,
-            registrations: {
-              include: {
-                formation: {
-                  select: {
-                    title: true,
-                  },
+  async findAll(filters?: GetUsersDto) {
+    const {page, limit, skip} = this.paginationService.calculatePagination({
+      page: filters?.page,
+      limit: filters?.limit,
+    });
+
+    // Construire les conditions WHERE
+    const where = this.buildUserFilters(filters || {});
+
+    // Ajouter la recherche textuelle si nécessaire
+    if (filters?.search) {
+      where.OR = this.buildSearchFilter(filters.search);
+    }
+
+    // Construire l'orderBy
+    const orderBy = this.buildUserOrderBy(filters || {});
+
+    // Exécuter les requêtes en parallèle
+    const [data, totalCount] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy,
+        select: {
+          ...selectUserFields,
+          registrations: {
+            include: {
+              formation: {
+                select: {
+                  title: true,
                 },
               },
             },
           },
-        }),
-      (args) => this.prisma.user.count(args),
-      {
-        pagination: paginationOptions,
-        search,
-        searchFields: ['firstName', 'lastName', 'email'],
-        where: { role: Role.USER },
-        orderBy: { createdAt: 'desc' },
-      },
-    );
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return this.paginationService.paginate({data, totalCount, page, limit});
   }
 
   async findOne(id: string) {
-    return this.prisma.user.findUnique({
+    const result = await this.prisma.user.findUnique({
       where: { id, role: Role.USER },
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        isActive: true,
-        emailVerified: true,
-        lastLogin: true,
-        createdAt: true,
-        updatedAt: true,
+        ...selectUserFields,
         registrations: {
           include: {
             formation: true,
@@ -70,9 +80,29 @@ export class UserService {
         },
       },
     });
+    if (!result) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+    return result;
   }
 
+  // TODO: Validate access rights (admin only/ self)
   async update(id: string, updateUserDto: UpdateUserDto, updatedBy: string) {
+    const user = await this.findOne(id);
+
+    // Vérifier si l'email existe déjà (si on change l'email)
+    if (updateUserDto.email && updateUserDto.email !== user.email) {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: updateUserDto.email },
+      });
+
+      if (existingUser) {
+        throw new BadRequestException(
+          'Un utilisateur avec cet email existe déjà',
+        );
+      }
+    }
+
     return this.prisma.user.update({
       where: { id, role: Role.USER },
       data: {
@@ -80,28 +110,12 @@ export class UserService {
         updatedBy,
         updatedAt: new Date(),
       },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        isActive: true,
-        emailVerified: true,
-        updatedAt: true,
-      },
+      select: selectUserFields,
     });
   }
 
   async toggleActive(id: string, updatedBy: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id, role: Role.USER },
-      select: { isActive: true },
-    });
-
-    if (!user) {
-      throw new Error('Utilisateur non trouvé');
-    }
+    const user = await this.findOne(id);
 
     return this.prisma.user.update({
       where: { id },
@@ -110,14 +124,7 @@ export class UserService {
         updatedBy,
         updatedAt: new Date(),
       },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        isActive: true,
-        updatedAt: true,
-      },
+      select: selectUserFields,
     });
   }
 
@@ -144,5 +151,35 @@ export class UserService {
       verified,
       recentRegistrations,
     };
+  }
+
+  private buildSearchFilter(search: string) {
+    return [
+      { firstName: { contains: search, mode: 'insensitive' as const } },
+      { lastName: { contains: search, mode: 'insensitive' as const } },
+      { email: { contains: search, mode: 'insensitive' as const } },
+    ];
+  }
+
+  private buildUserOrderBy(filters: GetUsersDto) {
+    if (filters.sortBy && filters.sortOrder) {
+      return { [filters.sortBy]: filters.sortOrder };
+    }
+    
+    return { createdAt: 'desc' as const };
+  }
+
+  private buildUserFilters(filters: GetUsersDto) {
+    const where: Prisma.UserWhereInput = { role: Role.USER };
+
+    if (filters.isActive !== undefined) {
+      where.isActive = filters.isActive;
+    }
+
+    if (filters.emailVerified !== undefined) {
+      where.emailVerified = filters.emailVerified;
+    }
+
+    return where;
   }
 }

@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { PaginationService } from '../pagination.service';
+import { GetUsersDto } from './dto/get-users.dto';
 import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/guards/roles.decorator';
@@ -22,23 +22,12 @@ import type { AuthenticatedRequest } from '../common/interfaces/request.interfac
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UserController {
-  constructor(
-    private readonly userService: UserService,
-    private readonly paginationService: PaginationService,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   @Get()
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
-  async findAll(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('search') search?: string,
-  ) {
-    const paginationOptions = this.paginationService.extractFromQuery({
-      page,
-      limit,
-    });
-    return this.userService.findAll(paginationOptions, search);
+  async findAll(@Query() filters: GetUsersDto) {
+    return this.userService.findAll(filters);
   }
 
   @Get('stats')
@@ -66,7 +55,13 @@ export class UserController {
   ) {
     try {
       return await this.userService.update(id, updateUserDto, req.user.id);
-    } catch {
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
       throw new BadRequestException(
         "Erreur lors de la mise à jour de l'utilisateur",
       );
@@ -81,7 +76,10 @@ export class UserController {
   ) {
     try {
       return await this.userService.toggleActive(id, req.user.id);
-    } catch {
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       throw new BadRequestException(
         "Erreur lors de la modification du statut de l'utilisateur",
       );

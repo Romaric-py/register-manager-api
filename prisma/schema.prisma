@@ -56,7 +56,7 @@ model Registration {
   userId        String
   user          User               @relation(fields: [userId], references: [id])
   formationId   String
-  formation     LearningModule     @relation(fields: [formationId], references: [id])
+  formation     Course     @relation(fields: [formationId], references: [id])
   status        RegistrationStatus @default(PENDING)
   paymentStatus PaymentStatus      @default(PENDING)
   paymentId     String?
@@ -79,7 +79,7 @@ model ContactMessage {
   response    String?
 }
 
-model LearningModule {
+model Course {
   id                  String         @id @default(uuid())
   title               String
   description         String

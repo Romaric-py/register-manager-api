@@ -21,6 +21,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/guards/roles.decorator';
 import { Role } from '@prisma/client';
 import type { AuthenticatedRequest } from '../common/interfaces/request.interface';
+import { GetAdminsDto } from './dto/get-admins.dto';
 
 @Controller('admins')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -32,16 +33,8 @@ export class AdminController {
   ) {}
 
   @Get()
-  async findAll(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('search') search?: string,
-  ) {
-    const paginationOptions = this.paginationService.extractFromQuery({
-      page,
-      limit,
-    });
-    return this.adminService.findAll(paginationOptions, search);
+  async findAll(@Query() query?: GetAdminsDto) {
+    return this.adminService.findAll(query);
   }
 
   @Get('stats')

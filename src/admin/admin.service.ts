@@ -4,13 +4,28 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { PaginationService, PaginationOptions } from '../pagination.service';
-import { Role } from '@prisma/client';
+import { PaginationService } from '../pagination.service';
+import { Prisma, Role } from '@prisma/client';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
+import { GetAdminsDto } from './dto/get-admins.dto';
 import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+
+const selectAdminFields = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  role: true,
+  isActive: true,
+  emailVerified: true,
+  lastLogin: true,
+  createdAt: true,
+  updatedAt: true,
+  createdBy: true,
+};
 
 @Injectable()
 export class AdminService {
@@ -20,56 +35,50 @@ export class AdminService {
     private mailService: MailService,
   ) {}
 
-  async findAll(paginationOptions: PaginationOptions, search?: string) {
-    return this.paginationService.paginate(
-      (args) =>
-        this.prisma.user.findMany({
-          ...args,
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            role: true,
-            isActive: true,
-            emailVerified: true,
-            lastLogin: true,
-            createdAt: true,
-            updatedAt: true,
-            createdBy: true,
-          },
-        }),
-      (args) => this.prisma.user.count(args),
-      {
-        pagination: paginationOptions,
-        search,
-        searchFields: ['firstName', 'lastName', 'email'],
-        where: { role: { in: [Role.ADMIN, Role.SUPER_ADMIN] } },
-        orderBy: { createdAt: 'desc' },
-      },
-    );
+  async findAll(filters?: GetAdminsDto): Promise<any> {
+    const { page, limit, skip } = this.paginationService.calculatePagination({
+      page: filters?.page,
+      limit: filters?.limit,
+    });
+
+    // Construire les conditions WHERE
+    const where = this.buildAdminFilters(filters || {});
+
+    // Ajouter la recherche textuelle si nécessaire
+    if (filters?.search) {
+      where.OR = this.buildSearchFilter(filters.search);
+    }
+
+    // Construire l'orderBy
+    const orderBy = this.buildAdminOrderBy(filters || {});
+
+    // Exécuter les requêtes en parallèle
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy,
+        select: selectAdminFields,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return this.paginationService.paginate({ data, totalCount: total, page, limit });
   }
 
   async findOne(id: string) {
-    return this.prisma.user.findUnique({
+    const result = await this.prisma.user.findUnique({
       where: {
         id,
         role: { in: [Role.ADMIN, Role.SUPER_ADMIN] },
       },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        role: true,
-        isActive: true,
-        emailVerified: true,
-        lastLogin: true,
-        createdAt: true,
-        updatedAt: true,
-        createdBy: true,
-      },
+      select: selectAdminFields,
     });
+    if (!result) {
+      throw new NotFoundException('Administrateur non trouvé');
+    }
+    return result;
   }
 
   async create(createAdminDto: CreateAdminDto, createdBy: string) {
@@ -104,16 +113,7 @@ export class AdminService {
         lastEmailVerificationIssue: new Date(),
         createdBy,
       },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        role: true,
-        isActive: true,
-        emailVerified: true,
-        createdAt: true,
-      },
+      select: selectAdminFields,
     });
 
     // Envoyer l'email de bienvenue avec le mot de passe temporaire
@@ -153,16 +153,7 @@ export class AdminService {
         updatedBy,
         updatedAt: new Date(),
       },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        role: true,
-        isActive: true,
-        emailVerified: true,
-        updatedAt: true,
-      },
+      select: selectAdminFields,
     });
   }
 
@@ -299,5 +290,39 @@ export class AdminService {
     );
 
     return { message: 'Mot de passe réinitialisé et envoyé par email' };
+  }
+
+  private buildSearchFilter(search: string) {
+    return [
+      { firstName: { contains: search, mode: 'insensitive' as const } },
+      { lastName: { contains: search, mode: 'insensitive' as const } },
+      { email: { contains: search, mode: 'insensitive' as const } },
+    ];
+  }
+
+  private buildAdminOrderBy(filters: GetAdminsDto) {
+    if (filters.sortBy && filters.sortOrder) {
+      return { [filters.sortBy]: filters.sortOrder };
+    }
+    
+    return { createdAt: 'desc' as const };
+  }
+
+  private buildAdminFilters(filters: GetAdminsDto) {
+    const where: Prisma.UserWhereInput = { role: { in: [Role.ADMIN, Role.SUPER_ADMIN] } };
+
+    if (filters.isActive !== undefined) {
+      where.isActive = filters.isActive;
+    }
+
+    if (filters.emailVerified !== undefined) {
+      where.emailVerified = filters.emailVerified;
+    }
+
+    if (filters.role) {
+      where.role = filters.role;
+    }
+
+    return where;
   }
 }

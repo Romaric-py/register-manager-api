@@ -9,6 +9,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { MailModule } from './mail/mail.module';
+import { CourseModule } from './course/course.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { MailModule } from './mail/mail.module';
     AdminModule,
     JwtModule,
     MailModule,
+    CourseModule,
   ],
   controllers: [AppController],
   providers: [
