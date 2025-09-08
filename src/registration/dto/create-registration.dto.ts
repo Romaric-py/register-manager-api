@@ -8,10 +8,6 @@ export class CreateRegistrationDto {
   @IsNotEmpty()
   @IsString()
   courseId: string;
-
-  @IsNotEmpty()
-  @IsDateString()
-  registrationDate?: string;
 }
 
 export class CreateRegistrationManyForOneDto {
@@ -24,10 +20,6 @@ export class CreateRegistrationManyForOneDto {
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
   courseIds: string[];
-  
-  @IsOptional()
-  @IsDateString()
-  registrationDate?: string;
 }
 
 export class CreateRegistrationOneForManyDto {
@@ -40,8 +32,4 @@ export class CreateRegistrationOneForManyDto {
   @IsNotEmpty()
   @IsString()
   courseId: string;
-
-  @IsOptional()
-  @IsDateString()
-  registrationDate?: string;
 }

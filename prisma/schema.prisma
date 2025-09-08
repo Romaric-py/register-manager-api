@@ -17,6 +17,7 @@ enum PaymentStatus {
   PENDING
   COMPLETED
   FAILED
+  CANCELLED
   REFUNDED
 }
 
@@ -27,13 +28,18 @@ enum RegistrationStatus {
   COMPLETED
 }
 
-enum PaymentMethod {
-  CARD
-  BANK_TRANSFER
-  MOBILE_MONEY
-  FEDAPAY
-  CASH
-  OTHER
+// enum PaymentMethod {
+//   MOOV
+//   MTN
+//   CASH
+//   OTHER
+//   UNKNOWN
+// }
+
+enum Currency {
+  USD
+  EUR
+  XOF
 }
 
 model User {
@@ -74,6 +80,7 @@ model Registration {
   course             Course             @relation(fields: [courseId], references: [id])
   status             RegistrationStatus @default(PENDING) // Statut de l'inscription
   paymentStatus      PaymentStatus      @default(PENDING) // Statut du paiement
+  // These fields are duplicated in Payment but useful for quick access
   totalAmount        Float? // Montant total à payer
   paidAmount         Float              @default(0) // Montant total payé (somme des paiements)
   remainingAmount    Float? // Montant restant à payer
@@ -93,8 +100,10 @@ model Payment {
   registrationId String
   registration   Registration  @relation(fields: [registrationId], references: [id])
   amount         Float
+  phoneNumber    String? // Numéro de téléphone utilisé pour le paiement mobile money
+  currency       Currency      @default(XOF) // Devise du paiement
   status         PaymentStatus @default(PENDING)
-  method         PaymentMethod @default(OTHER)
+  method         String        @default("unknown") // Méthode de paiement
   transactionId  String?       @unique // ID de la transaction de paiement
   paymentDate    DateTime?     @default(now()) // Date du paiement
   processedAt    DateTime? // Quand le paiement a été traité

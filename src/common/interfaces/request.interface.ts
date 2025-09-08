@@ -9,6 +9,12 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
+export type AuthUserType = {
+  id: string;
+  email: string;
+  role: string;
+};
+
 export interface RequestWithUser extends Request {
   user: User;
 }

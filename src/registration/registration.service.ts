@@ -8,6 +8,7 @@ import { UpdateRegistrationDto } from './dto/update-registration.dto';
 import { PrismaService } from '../prisma.service';
 import { GetRegistrationsDto } from './dto/get-registrations.dto';
 import { PaginationService } from '../pagination.service';
+import { RegistrationStatus } from '@prisma/client';
 
 @Injectable()
 export class RegistrationService {
@@ -17,8 +18,45 @@ export class RegistrationService {
   ) {}
 
   async create(createRegistrationDto: CreateRegistrationDto) {
+    // Vérifier que l'utilisateur et le cours existent
+    const user = await this.prisma.user.findUnique({
+      where: { id: createRegistrationDto.userId },
+    });
+    if (!user) {
+      throw new BadRequestException(
+        `User with id ${createRegistrationDto.userId} does not exist`,
+      );
+    }
+    const course = await this.prisma.course.findUnique({
+      where: { id: createRegistrationDto.courseId },
+    });
+    if (!course) {
+      throw new BadRequestException(
+        `Course with id ${createRegistrationDto.courseId} does not exist`,
+      );
+    }
+    // Empêcher les doublons (un utilisateur ne peut s'inscrire qu'une fois au même cours)
+    const existingRegistration = await this.prisma.registration.findFirst({
+      where: {
+        userId: createRegistrationDto.userId,
+        courseId: createRegistrationDto.courseId,
+      },
+    });
+    if (existingRegistration) {
+      throw new BadRequestException(
+        `User with id ${createRegistrationDto.userId} is already registered for course with id ${createRegistrationDto.courseId}`,
+      );
+    }
+
+    // Créer l'inscription
     const registration = await this.prisma.registration.create({
-      data: createRegistrationDto,
+      data: {
+        ...createRegistrationDto,
+        totalAmount: course.price,
+        remainingAmount: course.price, // Par défaut, le montant payé est le prix du cours
+        paidAmount: 0, // Par défaut, le montant payé est 0
+        status: course.price ? RegistrationStatus.PENDING : RegistrationStatus.COMPLETED, // Si le cours est gratuit, marquer comme payé
+      },
     });
     return registration;
   }
@@ -124,8 +162,6 @@ export class RegistrationService {
     const registrations = createRegistrationsDto.courseIds.map((courseId) => ({
       userId,
       courseId,
-      registrationDate:
-        createRegistrationsDto.registrationDate || new Date().toISOString(),
     }));
 
     await this.prisma.registration.createMany({
@@ -179,8 +215,6 @@ export class RegistrationService {
     const registrations = createRegistrationDtos.userIds.map((userId) => ({
       userId,
       courseId,
-      registrationDate:
-        createRegistrationDtos.registrationDate || new Date().toISOString(),
     }));
 
     await this.prisma.registration.createMany({

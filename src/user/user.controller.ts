@@ -36,6 +36,15 @@ export class UserController {
     return this.userService.getUserStats();
   }
 
+  @Get('me')
+  async getCurrentUser(@Request() req: AuthenticatedRequest) {
+    const user = await this.userService.findOne(req.user.id);
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+    return user;
+  }
+
   @Get(':id')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   async findOne(@Param('id') id: string) {

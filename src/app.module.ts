@@ -46,14 +46,14 @@ import { PaymentModule } from './payment/payment.module';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
-    {
+    /*{
       provide: APP_FILTER,
       useClass: PrismaExceptionFilter,
     },
     {
       provide: APP_FILTER,
       useClass: PrismaGeneralExceptionFilter,
-    },
+    },*/
   ],
 })
 export class AppModule {}

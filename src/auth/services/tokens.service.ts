@@ -29,7 +29,7 @@ export class TokensService {
 
   async generateAndSetAuthTokens(user: User, res: any) {
     // Use JWT service to generate acces and refresh tokens
-    const authTokens = await this.jwtService.generateAuthTokens(user);
+    const authTokens = await this.jwtService.generateAuthTokens({ id: user.id, email: user.email, role: user.role } );
 
     // Delete old auth refresh tokens of that user
     await this.deleteUserRefreshTokens(user.id);

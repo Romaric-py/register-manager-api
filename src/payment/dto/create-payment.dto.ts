@@ -1,5 +1,4 @@
-import { PaymentMethod } from '@prisma/client';
-import { IsString, IsNumber, IsNotEmpty } from 'class-validator';
+import { IsString, IsNumber, IsNotEmpty, IsDateString } from 'class-validator';
 
 export class CreatePaymentDto {
   // ID de l'inscription associée au paiement
@@ -16,10 +15,15 @@ export class CreatePaymentDto {
   // Méthode de paiement (carte bancaire, PayPal, virement bancaire, etc.)
   @IsString()
   @IsNotEmpty()
-  method?: PaymentMethod;
+  method?: string;
 
   // Date du paiement
-  @IsString()
+  @IsDateString()
   @IsNotEmpty()
   paymentDate?: string;
+
+  // Numéro de téléphone associé au paiement
+  @IsString()
+  @IsNotEmpty()
+  phoneNumber: string;
 }

@@ -1,41 +1,58 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma.service';
-import { CreatePaymentDto } from './dto/create-payment.dto';
-import { PaymentStatus } from '@prisma/client';
+import { PrismaService } from '../../prisma.service';
+import { Currency, PaymentStatus } from '@prisma/client';
+import { CreatePaymentDto } from '../dto/create-payment.dto';
+import { SortOrder } from 'src/common/constants/global.constants';
 
 @Injectable()
-export class PaymentService {
-  constructor(private readonly prisma: PrismaService, private readonly logger: Logger) {}
+export class PaymentRecordService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: Logger,
+  ) {}
 
   /**
    * Crée un paiement pour une inscription donnée (suite à l'intention de paiement).
    */
-  async createPaymentForRegistration(paymentDto: CreatePaymentDto) {
-    const { registrationId, amount, method, paymentDate } = paymentDto;
-
-    // Vérifier si l'inscription existe
-    await this.checkIfRegistrationExists(registrationId);
-
-    this.logger.log(`Creating payment for registration ID: ${registrationId}`);
-    
-    const payment = await this.prisma.payment.create({
+  async createPaymentRecord(
+    transaction: {
+      id: number;
+      amount: number;
+      status: string;
+      created_at: string;
+      updated_at: string;
+    },
+    createPaymentDto: CreatePaymentDto,
+  ) {
+    return this.prisma.payment.create({
       data: {
-        registrationId,
-        amount,
-        method,
-        paymentDate,
-        status: PaymentStatus.PENDING, // Statut initial
+        registrationId: createPaymentDto.registrationId,
+        transactionId: transaction.id ? transaction.id.toString() : undefined,
+        amount: createPaymentDto.amount,
+        status: PaymentStatus.PENDING,
+        currency: Currency.XOF,
+        phoneNumber: createPaymentDto.phoneNumber,
+        notes: undefined,
+        method: 'unknown',
+        paymentDate: new Date(), // Set to current date (// TODO can be updated later)
+        processedAt: undefined,
       },
     });
+  }
 
-    return { message: 'Paiement créé avec succès', data: payment };
+  async getPendingPayments() {
+    return this.prisma.payment.findMany({
+      where: {
+        status: PaymentStatus.PENDING,
+      },
+    });
   }
 
   async getPaymentsByRegistration(registrationId: string) {
     await this.checkIfRegistrationExists(registrationId);
     return this.prisma.payment.findMany({
       where: { registrationId },
-      orderBy: { paymentDate: 'desc' },
+      orderBy: { paymentDate: SortOrder.DESC },
     });
   }
 
@@ -49,7 +66,6 @@ export class PaymentService {
     }
   }
 }
-
 
 /* IDÉES ET NOTES
 Pour faire un paiement, on doit connaitre, l'inscription (qui contient le user et le cours),
