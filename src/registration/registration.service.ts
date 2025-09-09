@@ -78,6 +78,25 @@ export class RegistrationService {
     return this.paginationService.paginate({ data, totalCount, page, limit });
   }
 
+  async findUserRegistrations(query: GetRegistrationsDto, userId: string) {
+    const { page, limit, skip } = this.paginationService.calculatePagination({
+      page: query?.page,
+      limit: query?.limit,
+    });
+
+    const [data, totalCount] = await Promise.all([
+      this.prisma.registration.findMany({
+        where: { userId },
+        skip,
+        take: limit,
+        include: { course: true },
+      }),
+      this.prisma.registration.count(),
+    ]);
+
+    return this.paginationService.paginate({ data, totalCount, page, limit });
+  }
+
   async findOne(id: string) {
     const result = await this.prisma.registration.findUnique({
       where: { id },

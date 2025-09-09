@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, Req } from '@nestjs/common';
 import { RegistrationService } from './registration.service';
 import { CreateRegistrationDto, CreateRegistrationOneForManyDto, CreateRegistrationManyForOneDto } from './dto/create-registration.dto';
 import { UpdateRegistrationDto } from './dto/update-registration.dto';
@@ -7,6 +7,7 @@ import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { GetRegistrationsDto } from './dto/get-registrations.dto';
+import { AuthenticatedRequest } from 'src/common/interfaces/request.interface';
 
 @Controller('registration')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -28,9 +29,15 @@ export class RegistrationController {
     return this.registrationService.createOneForMany(createRegistrationDtos);
   }
 
-  @Get()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Get('all')
   findAll(@Query() query: GetRegistrationsDto) {
     return this.registrationService.findAll(query);
+  }
+
+  @Get('me') 
+  findUserRegistrations(@Query() query: any, @Req() req: AuthenticatedRequest) {
+    return this.registrationService.findUserRegistrations(query, req.user.id);
   }
 
   @Get(':id')

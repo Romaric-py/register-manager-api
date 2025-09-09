@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { PaginationService } from '../pagination.service';
 import { Prisma, Role } from '@prisma/client';
@@ -26,7 +30,7 @@ export class UserService {
   ) {}
 
   async findAll(filters?: GetUsersDto) {
-    const {page, limit, skip} = this.paginationService.calculatePagination({
+    const { page, limit, skip } = this.paginationService.calculatePagination({
       page: filters?.page,
       limit: filters?.limit,
     });
@@ -65,25 +69,23 @@ export class UserService {
       this.prisma.user.count({ where }),
     ]);
 
-    return this.paginationService.paginate({data, totalCount, page, limit});
+    return this.paginationService.paginate({ data, totalCount, page, limit });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, includeRegistrations: boolean = false) {
     const result = await this.prisma.user.findUnique({
       where: { id, role: Role.USER },
       select: {
         ...selectUserFields,
-        registrations: {
-          include: {
-            course: true,
-          },
-        },
+        registrations: includeRegistrations
+          ? { include: { course: true } }
+          : undefined,
       },
     });
     if (!result) {
       throw new NotFoundException('Utilisateur non trouvé');
     }
-    return result;
+    return { user: result };
   }
 
   // TODO: Validate access rights (admin only/ self)
@@ -177,7 +179,7 @@ export class UserService {
     if (filters.sortBy && filters.sortOrder) {
       return { [filters.sortBy]: filters.sortOrder };
     }
-    
+
     return { createdAt: 'desc' as const };
   }
 

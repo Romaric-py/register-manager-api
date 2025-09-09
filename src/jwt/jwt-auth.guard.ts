@@ -24,7 +24,10 @@ export class JwtAuthGuard implements CanActivate {
       this.extractRefreshToken(req) || req.cookies?.refresh_token;
 
     if (!accessToken && !refreshToken) {
-      throw new UnauthorizedException({ code: 'TOKEN_MISSING', message: 'no token provided' });
+      throw new UnauthorizedException({
+        code: 'TOKEN_MISSING',
+        message: 'no token provided',
+      });
     }
 
     if (accessToken) {
@@ -59,6 +62,9 @@ export class JwtAuthGuard implements CanActivate {
       );
 
       const payload = this.jwtService.verifyToken(authTokens.accessToken);
+      if (!payload) {
+        throw new Error('TOKEN_INVALID');
+      }
       req.user = payload;
 
       return true;

@@ -22,12 +22,12 @@ import { PaymentModule } from './payment/payment.module';
       {
         name: 'short',
         ttl: parseInt(process.env.THROTTLER_SHORT_TTL || '60000'), // 1 minute par défaut
-        limit: parseInt(process.env.THROTTLER_SHORT_LIMIT || '10'), // 10 requêtes par minute par défaut
+        limit: parseInt(process.env.THROTTLER_SHORT_LIMIT || '20'), // 20 requêtes par minute par défaut
       },
       {
         name: 'medium',
         ttl: parseInt(process.env.THROTTLER_MEDIUM_TTL || '600000'), // 10 minutes par défaut
-        limit: parseInt(process.env.THROTTLER_MEDIUM_LIMIT || '20'), // 20 requêtes par 10 minutes par défaut
+        limit: parseInt(process.env.THROTTLER_MEDIUM_LIMIT || '40'), // 40 requêtes par 10 minutes par défaut
       },
     ]),
     AuthModule,

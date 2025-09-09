@@ -18,7 +18,6 @@ export class JwtService {
 
   verifyToken(
     token: string,
-    isRefresh = false,
   ): Record<string, unknown> | null {
     try {
       const result = this.jwtService.verify(token);

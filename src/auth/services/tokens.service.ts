@@ -46,7 +46,7 @@ export class TokensService {
     const storedToken = await this.validateRefreshToken(oldRefreshToken);
     // Call generateAndSetAuthTokens
     const authTokens = await this.jwtService.generateAuthTokens(
-      storedToken.user,
+      { id: storedToken.user.id, email: storedToken.user.email, role: storedToken.user.role },
     );
     // Set in response cookies access_token and refresh_tokens
     await this.setAuthCookies(res, authTokens);

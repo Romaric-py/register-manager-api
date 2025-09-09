@@ -9,6 +9,7 @@ import {
   Request,
   NotFoundException,
   BadRequestException,
+  Req,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -37,7 +38,7 @@ export class UserController {
   }
 
   @Get('me')
-  async getCurrentUser(@Request() req: AuthenticatedRequest) {
+  async getCurrentUser(@Req() req: AuthenticatedRequest) {
     const user = await this.userService.findOne(req.user.id);
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
@@ -48,7 +49,7 @@ export class UserController {
   @Get(':id')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   async findOne(@Param('id') id: string) {
-    const user = await this.userService.findOne(id);
+    const user = await this.userService.findOne(id, true);
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
     }
